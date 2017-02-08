@@ -248,13 +248,11 @@ static void NoiseEstimation(NoiseSuppressionC *self,
             // Update log quantile estimate.
             if(lmagn[i] > self->lquantile[offset + i])
             {
-                self->lquantile[offset + i] +=
-                    QUANTILE * delta / (float)(self->counter[s] + 1);
+                self->lquantile[offset + i] += QUANTILE * delta / (float)(self->counter[s] + 1);
             }
             else
             {
-                self->lquantile[offset + i] -=
-                    (1.f - QUANTILE) * delta / (float)(self->counter[s] + 1);
+                self->lquantile[offset + i] -= (1.f - QUANTILE) * delta / (float)(self->counter[s] + 1);
             }
 
             // Update density estimate.
@@ -262,8 +260,7 @@ static void NoiseEstimation(NoiseSuppressionC *self,
             {
                 self->density[offset + i] =
                     ((float) self->counter[s] * self->density[offset + i] +
-                     1.f / (2.f * WIDTH)) /
-                    (float)(self->counter[s] + 1);
+                     1.f / (2.f * WIDTH)) / (float)(self->counter[s] + 1);
             }
         }  // End loop over magnitude spectrum.
 
@@ -594,7 +591,7 @@ static void ComputeSpectralFlatness(NoiseSuppressionC *self,
                                     const float *magnIn)
 {
     int i;
-    int shiftLP = 1;  // Option to remove first bin(s) from spectral measures.
+    int shiftLP = 1;  // Option to remove first bin(U) from spectral measures.
     float avgSpectralFlatnessNum, avgSpectralFlatnessDen, spectralTmp;
     // Compute spectral measures.
     // For flatness.
@@ -603,11 +600,10 @@ static void ComputeSpectralFlatness(NoiseSuppressionC *self,
 
     for(i = 0; i < shiftLP; i++)
     {
-        avgSpectralFlatnessDen -= magnIn[i];
+        avgSpectralFlatnessDen -= magnIn[i]; //1-127点的功率和(去掉直流分量的功率)
     }
 
-    // Compute log of ratio of the geometric to arithmetic mean: check for log(0)
-    // case.
+    // Compute log of ratio of the geometric to arithmetic mean: check for log(0) case.
     for(i = shiftLP; i < self->magnLen; i++)
     {
         if(magnIn[i] > 0.0)
@@ -627,6 +623,7 @@ static void ComputeSpectralFlatness(NoiseSuppressionC *self,
     // Ratio and inverse log: check for case of log(0).
     spectralTmp = (float) exp(avgSpectralFlatnessNum) / avgSpectralFlatnessDen;
     // Time-avg update of spectral flatness feature.
+    //new = 0.3*new_value + 0.7*old
     self->featureData[0] += SPECT_FL_TAVG * (spectralTmp - self->featureData[0]);
     // Done with flatness feature.
 }
@@ -1129,8 +1126,7 @@ static void ComputeDdBasedWienerFilter(const NoiseSuppressionC *self,
 
         // DD estimate is sum of two terms: current estimate and previous estimate.
         // Directed decision update of |snrPrior|.
-        snrPrior = DD_PR_SNR * previousEstimateStsa +
-                   (1.f - DD_PR_SNR) * currentEstimateStsa;
+        snrPrior = DD_PR_SNR * previousEstimateStsa + (1.f - DD_PR_SNR) * currentEstimateStsa;
         // Gain filter.
         theFilter[i] = snrPrior / (self->overdrive + snrPrior);
     }  // End of loop over frequencies.
@@ -1182,8 +1178,8 @@ int WebRtcNs_set_policy_core(NoiseSuppressionC *self, int mode)
     }
     else if(mode == 5)
     {
-        self->overdrive = 1.80f;
-        self->denoiseBound = 0.02f;
+        self->overdrive = 2.0f;
+        self->denoiseBound = 0.002f;
         self->gainmap = 1;
     }
 
@@ -1299,8 +1295,7 @@ void WebRtcNs_AnalyzeCore(NoiseSuppressionC *self, const float *speechFrame)
         if(self->pinkNoiseExp > 0.f)
         {
             // Use pink noise estimate.
-            parametric_num =
-                expf(self->pinkNoiseNumerator / (float)(self->blockInd + 1));
+            parametric_num = expf(self->pinkNoiseNumerator / (float)(self->blockInd + 1));
             parametric_num *= (float)(self->blockInd + 1);
             parametric_exp = self->pinkNoiseExp / (float)(self->blockInd + 1);
         }
@@ -1318,14 +1313,12 @@ void WebRtcNs_AnalyzeCore(NoiseSuppressionC *self, const float *speechFrame)
             {
                 // Use pink noise estimate.
                 float use_band = (float)(i < kStartBand ? kStartBand : i);
-                self->parametricNoise[i] =
-                    parametric_num / powf(use_band, parametric_exp);
+                self->parametricNoise[i] = parametric_num / powf(use_band, parametric_exp);
             }
 
             // Weight quantile noise with modeled noise.
             noise[i] *= (self->blockInd);
-            tmpFloat2 =
-                self->parametricNoise[i] * (END_STARTUP_SHORT - self->blockInd);
+            tmpFloat2 = self->parametricNoise[i] * (END_STARTUP_SHORT - self->blockInd);
             noise[i] += (tmpFloat2 / (float)(self->blockInd + 1));
             noise[i] /= END_STARTUP_SHORT;
         }
@@ -1473,7 +1466,7 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
             theFilter[i] = 1.f;
         }
 
-        //如果在前200次前
+        //如果在前50次前
         if(self->blockInd < END_STARTUP_SHORT)
         {
             theFilterTmp[i] = (self->initMagnEst[i] - self->overdrive * self->parametricNoise[i]);
@@ -1492,6 +1485,12 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
             }
 
             // Weight the two suppression filters.
+            /*下面４行计算过程如下，theFilter[i] = new1 \in [0,1]; theFilterTmp[i] = new2 \in [0,1]
+            new1 = old1 * a(=self->blockInd)
+            new2 = old2 * ( 50 - a)
+            new1 = new1 + new2
+            new1 = new1 / 50
+            */
             theFilter[i] *= (self->blockInd);
             theFilterTmp[i] *= (END_STARTUP_SHORT - self->blockInd);
             theFilter[i] += theFilterTmp[i];
@@ -1500,6 +1499,7 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
 
         //从这里也可以看出，当denoiseBound越小的时候，声音也变小
         self->smooth[i] = theFilter[i];
+        //对每个频点都采用同样的加权系统
         real[i] *= self->smooth[i];
         imag[i] *= self->smooth[i];
     }
