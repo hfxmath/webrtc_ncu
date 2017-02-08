@@ -19,50 +19,50 @@
 
 NsHandle *WebRtcNs_Create()
 {
-    NoiseSuppressionC *self = malloc ( sizeof ( NoiseSuppressionC ) );
+    NoiseSuppressionC *self = (NoiseSuppressionC*) malloc(sizeof(NoiseSuppressionC));
     self->initFlag = 0;
-    return ( NsHandle * ) self;
+    return (NsHandle *) self;
 }
 
-void WebRtcNs_Free ( NsHandle *NS_inst )
+void WebRtcNs_Free(NsHandle *NS_inst)
 {
-    free ( NS_inst );
+    free(NS_inst);
 }
 
-int WebRtcNs_Init ( NsHandle *NS_inst, uint32_t fs )
+int WebRtcNs_Init(NsHandle *NS_inst, uint32_t fs)
 {
-    return WebRtcNs_InitCore ( ( NoiseSuppressionC * ) NS_inst, fs );
+    return WebRtcNs_InitCore((NoiseSuppressionC *) NS_inst, fs);
 }
 
-int WebRtcNs_set_policy ( NsHandle *NS_inst, int mode )
+int WebRtcNs_set_policy(NsHandle *NS_inst, int mode)
 {
-    return WebRtcNs_set_policy_core ( ( NoiseSuppressionC * ) NS_inst, mode );
+    return WebRtcNs_set_policy_core((NoiseSuppressionC *) NS_inst, mode);
 }
 
-void WebRtcNs_Analyze ( NsHandle *NS_inst, const float *spframe )
+void WebRtcNs_Analyze(NsHandle *NS_inst, const float *spframe)
 {
-    WebRtcNs_AnalyzeCore ( ( NoiseSuppressionC * ) NS_inst, spframe );
+    WebRtcNs_AnalyzeCore((NoiseSuppressionC *) NS_inst, spframe);
 }
 
-void WebRtcNs_Process ( NsHandle *NS_inst,
-                        const float *const *spframe,
-                        int num_bands,
-                        float *const *outframe )
+void WebRtcNs_Process(NsHandle *NS_inst,
+                      const float *const *spframe,
+                      int num_bands,
+                      float *const *outframe)
 {
-    WebRtcNs_ProcessCore ( ( NoiseSuppressionC * ) NS_inst, spframe, num_bands,
-                           outframe );
+    WebRtcNs_ProcessCore((NoiseSuppressionC *) NS_inst, spframe, num_bands,
+                         outframe);
 }
 
-float WebRtcNs_prior_speech_probability ( NsHandle *handle )
+float WebRtcNs_prior_speech_probability(NsHandle *handle)
 {
-    NoiseSuppressionC *self = ( NoiseSuppressionC * ) handle;
+    NoiseSuppressionC *self = (NoiseSuppressionC *) handle;
 
-    if ( handle == NULL )
+    if(handle == NULL)
     {
         return -1;
     }
 
-    if ( self->initFlag == 0 )
+    if(self->initFlag == 0)
     {
         return -1;
     }

@@ -651,8 +651,7 @@ static void ComputeSnr(const NoiseSuppressionC *self,
     {
         // Previous post SNR.
         // Previous estimate: based on previous frame with gain filter.
-        float previousEstimateStsa = self->magnPrevAnalyze[i] /
-                                     (self->noisePrev[i] + 0.0001f) * self->smooth[i];
+        float previousEstimateStsa = self->magnPrevAnalyze[i] / (self->noisePrev[i] + 0.0001f) * self->smooth[i];
         // Post SNR.
         snrLocPost[i] = 0.f;
 
@@ -663,12 +662,12 @@ static void ComputeSnr(const NoiseSuppressionC *self,
 
         // DD estimate is sum of two terms: current estimate and previous estimate.
         // Directed decision update of snrPrior.
-        snrLocPrior[i] =
-            DD_PR_SNR * previousEstimateStsa + (1.f - DD_PR_SNR) * snrLocPost[i];
+        snrLocPrior[i] = DD_PR_SNR * previousEstimateStsa + (1.f - DD_PR_SNR) * snrLocPost[i];
     }  // End of loop over frequencies.
 }
 
 // Compute the difference measure between input spectrum and a template/learned
+//计算输入数据与学习数据之间的误差
 // noise spectrum.
 // |magnIn| is the input spectrum.
 // The reference/template spectrum is self->magnAvgPause[i].
@@ -681,7 +680,7 @@ static void ComputeSpectralDifference(NoiseSuppressionC *self,
     int i;
     float avgPause, avgMagn, covMagnPause, varPause, varMagn, avgDiffNormMagn;
     avgPause = 0.0;
-    avgMagn = self->sumMagn;
+    avgMagn = self->sumMagn;//每一zhen贞的总功率
 
     // Compute average quantities.
     for(i = 0; i < self->magnLen; i++)
@@ -700,8 +699,7 @@ static void ComputeSpectralDifference(NoiseSuppressionC *self,
     for(i = 0; i < self->magnLen; i++)
     {
         covMagnPause += (magnIn[i] - avgMagn) * (self->magnAvgPause[i] - avgPause);
-        varPause +=
-            (self->magnAvgPause[i] - avgPause) * (self->magnAvgPause[i] - avgPause);
+        varPause + (self->magnAvgPause[i] - avgPause) * (self->magnAvgPause[i] - avgPause);
         varMagn += (magnIn[i] - avgMagn) * (magnIn[i] - avgMagn);
     }
 
@@ -710,8 +708,7 @@ static void ComputeSpectralDifference(NoiseSuppressionC *self,
     varMagn /= self->magnLen;
     // Update of average magnitude spectrum.
     self->featureData[6] += self->signalEnergy;
-    avgDiffNormMagn =
-        varMagn - (covMagnPause * covMagnPause) / (varPause + 0.0001f);
+    avgDiffNormMagn = varMagn - (covMagnPause * covMagnPause) / (varPause + 0.0001f);
     // Normalize and compute time-avg update of difference feature.
     avgDiffNormMagn = (float)(avgDiffNormMagn / (self->featureData[5] + 0.0001f));
     self->featureData[4] +=
@@ -816,8 +813,7 @@ static void SpeechNoiseProb(NoiseSuppressionC *self,
     indicator2 =
         0.5f * ((float) tanh(widthPrior * (tmpFloat1 - threshPrior2)) + 1.f);
     // Combine the indicator function with the feature weights.
-    indPrior = weightIndPrior0 * indicator0 + weightIndPrior1 * indicator1 +
-               weightIndPrior2 * indicator2;
+    indPrior = weightIndPrior0 * indicator0 + weightIndPrior1 * indicator1 + weightIndPrior2 * indicator2;
     // Done with computing indicator function.
     // Compute the prior probability.
     self->priorSpeechProb += PRIOR_UPDATE * (indPrior - self->priorSpeechProb);
@@ -1122,8 +1118,7 @@ static void ComputeDdBasedWienerFilter(const NoiseSuppressionC *self,
     for(i = 0; i < self->magnLen; i++)
     {
         // Previous estimate: based on previous frame with gain filter.
-        previousEstimateStsa = self->magnPrevProcess[i] /
-                               (self->noisePrev[i] + 0.0001f) * self->smooth[i];
+        previousEstimateStsa = self->magnPrevProcess[i] / (self->noisePrev[i] + 0.0001f) * self->smooth[i];
         // Post and prior SNR.
         currentEstimateStsa = 0.f;
 
@@ -1147,8 +1142,8 @@ static void ComputeDdBasedWienerFilter(const NoiseSuppressionC *self,
 // Returns 0 on success and -1 otherwise.
 int WebRtcNs_set_policy_core(NoiseSuppressionC *self, int mode)
 {
-    // Allow for modes: 0, 1, 2, 3.
-    if(mode < 0 || mode > 3)
+    // Allow for modes: 0, 1, 2, 3, 4, 5.
+    if(mode < 0 || mode > 5)
     {
         return (-1);
     }
@@ -1163,23 +1158,32 @@ int WebRtcNs_set_policy_core(NoiseSuppressionC *self, int mode)
     }
     else if(mode == 1)
     {
-        // self->overdrive = 1.25f;
         self->overdrive = 1.f;
         self->denoiseBound = 0.25f;
         self->gainmap = 1;
     }
     else if(mode == 2)
     {
-        // self->overdrive = 1.25f;
         self->overdrive = 1.1f;
         self->denoiseBound = 0.125f;
         self->gainmap = 1;
     }
     else if(mode == 3)
     {
-        // self->overdrive = 1.3f;
         self->overdrive = 1.25f;
         self->denoiseBound = 0.09f;
+        self->gainmap = 1;
+    }
+    else if(mode == 4)
+    {
+        self->overdrive = 1.50f;
+        self->denoiseBound = 0.03f;
+        self->gainmap = 1;
+    }
+    else if(mode == 5)
+    {
+        self->overdrive = 1.80f;
+        self->denoiseBound = 0.02f;
         self->gainmap = 1;
     }
 
@@ -1420,8 +1424,9 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
         UpdateBuffer(NULL, self->blockLen, self->anaLen, self->syntBuf);
 
         for(i = 0; i < self->blockLen; ++i)
-            outFrame[0][i] =
-                WEBRTC_SPL_SAT(WEBRTC_SPL_WORD16_MAX, fout[i], WEBRTC_SPL_WORD16_MIN);
+        {
+            outFrame[0][i] = WEBRTC_SPL_SAT(WEBRTC_SPL_WORD16_MAX, fout[i], WEBRTC_SPL_WORD16_MIN);
+        }
 
         // For time-domain gain of HB.
         if(flagHB == 1)
@@ -1440,7 +1445,7 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
         return;
     }
 
-    //FFT变换，转换到频域，数据存储到magn（保存的是功率）中
+    //FFT变换，转换到频域，数据存储到magn（保存的是功率,已经经过维纳滤波处理）中
     FFT(self, winData, self->anaLen, self->magnLen, real, imag, magn);
 
     //先计算前50次的总功率（不知道50与时间上有何关系）
@@ -1456,7 +1461,7 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
 
     for(i = 0; i < self->magnLen; i++)
     {
-        // Flooring bottom.
+        // Flooring bottom.//小于自定义的噪声级别,只出现在[0，1]之间
         if(theFilter[i] < self->denoiseBound)
         {
             theFilter[i] = self->denoiseBound;
@@ -1468,10 +1473,10 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
             theFilter[i] = 1.f;
         }
 
+        //如果在前200次前
         if(self->blockInd < END_STARTUP_SHORT)
         {
-            theFilterTmp[i] =
-                (self->initMagnEst[i] - self->overdrive * self->parametricNoise[i]);
+            theFilterTmp[i] = (self->initMagnEst[i] - self->overdrive * self->parametricNoise[i]);
             theFilterTmp[i] /= (self->initMagnEst[i] + 0.0001f);
 
             // Flooring bottom.
@@ -1493,6 +1498,7 @@ void WebRtcNs_ProcessCore(NoiseSuppressionC *self,
             theFilter[i] /= (END_STARTUP_SHORT);
         }
 
+        //从这里也可以看出，当denoiseBound越小的时候，声音也变小
         self->smooth[i] = theFilter[i];
         real[i] *= self->smooth[i];
         imag[i] *= self->smooth[i];
