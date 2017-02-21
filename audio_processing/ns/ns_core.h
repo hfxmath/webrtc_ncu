@@ -52,65 +52,66 @@ typedef struct NSParaExtract_
 
 typedef struct NoiseSuppressionC_
 {
-    uint32_t fs;
-    int blockLen;
-    int windShift;
-    int anaLen;
-    int magnLen;
-    int aggrMode;
-    const float *window;
-    float analyzeBuf[ANAL_BLOCKL_MAX];
-    float dataBuf[ANAL_BLOCKL_MAX];
-    float syntBuf[ANAL_BLOCKL_MAX];
+    uint32_t fs;       //采样率
+    size_t blockLen;	//10ms对应处理的数据长度: 80 or 160
+    size_t windShift;	//窗口长度
+    size_t anaLen;		//FFT分析长度
+    size_t magnLen;		//由于fft是对称的，所以只处理前一半长度的数据 i.e. magnLen = anaLen / 2
+    int aggrMode;		//降噪激进度
+    const float *window;	//窗口函数系数
+    float analyzeBuf[ANAL_BLOCKL_MAX];	//分析数据的数组
+    float dataBuf[ANAL_BLOCKL_MAX];		//数据缓存数组
+    float syntBuf[ANAL_BLOCKL_MAX];		//谱减法缓存数组
 
-    int initFlag;
+    int initFlag;		//开始标记位
     // Parameters for quantile noise estimation.
-    float density[SIMULT * HALF_ANAL_BLOCKL];
-    float lquantile[SIMULT * HALF_ANAL_BLOCKL];
-    float quantile[HALF_ANAL_BLOCKL];
-    int counter[SIMULT];
-    int updates;
+    float density[SIMULT * HALF_ANAL_BLOCKL];　//概率密度数组
+    float lquantile[SIMULT * HALF_ANAL_BLOCKL];	//对数分位数数组
+    float quantile[HALF_ANAL_BLOCKL];	//分位数数组(临时保存噪声的数组)
+    int counter[SIMULT];	//记数
+    int updates;	//更新记数
     // Parameters for Wiener filter.
-    float smooth[HALF_ANAL_BLOCKL];
-    float overdrive;
-    float denoiseBound;
-    int gainmap;
+    float smooth[HALF_ANAL_BLOCKL];　//
+光滑系统
+    float overdrive;	//降噪级别
+    float denoiseBound;	//降噪分赃
+    int gainmap;	//增举益
     // FFT work arrays.
-    int ip[IP_LENGTH];
+    size_t ip[IP_LENGTH];　//实部
     float wfft[W_LENGTH];
 
     // Parameters for new method: some not needed, will reduce/cleanup later.
-    int32_t blockInd;  // Frame index counter.
-    int modelUpdatePars[4];  // Parameters for updating or estimating.
+    int32_t blockInd;  // Frame index counter帧索引计数器 .
+    int modelUpdatePars[4];  // Parameters for updating or estimating更新或估计参数 .
     // Thresholds/weights for prior model.
-    float priorModelPars[7];  // Parameters for prior model.
-    float noise[HALF_ANAL_BLOCKL];  // Noise spectrum from current frame.
-    float noisePrev[HALF_ANAL_BLOCKL];  // Noise spectrum from previous frame.
-    // Magnitude spectrum of previous analyze frame.
+    float priorModelPars[7];  // Parameters for prior model先验模型参数.
+    float noise[HALF_ANAL_BLOCKL];  // Noise spectrum from current frame当前帧噪声谱 .
+    float noisePrev[HALF_ANAL_BLOCKL];  // Noise spectrum from previous frame前一帧噪声谱.
+    // Magnitude spectrum of previous analyze frame前一帧分析的幅度谱.
     float magnPrevAnalyze[HALF_ANAL_BLOCKL];
-    // Magnitude spectrum of previous process frame.
+    // Magnitude spectrum of previous process frame前处理帧的幅度谱.
     float magnPrevProcess[HALF_ANAL_BLOCKL];
-    float logLrtTimeAvg[HALF_ANAL_BLOCKL];  // Log LRT factor with time-smoothing.
-    float priorSpeechProb;  // Prior speech/noise probability.
+    float logLrtTimeAvg[HALF_ANAL_BLOCKL];  // Log LRT factor with time-smoothing对数似然比时间平滑因子.
+    float priorSpeechProb;  // Prior speech/noise probability先验语音/噪声概率.
     float featureData[7];
-    // Conservative noise spectrum estimate.
+    // Conservative noise spectrum estimate保守噪声谱估计.
     float magnAvgPause[HALF_ANAL_BLOCKL];
     float signalEnergy;  // Energy of |magn|.
     float sumMagn;
-    float whiteNoiseLevel;  // Initial noise estimate.
-    float initMagnEst[HALF_ANAL_BLOCKL];  // Initial magnitude spectrum estimate.
+    float whiteNoiseLevel;  // Initial noise estimate初始噪声估计.
+    float initMagnEst[HALF_ANAL_BLOCKL];  // Initial magnitude spectrum estimate谱估计的初始大小.
     float pinkNoiseNumerator;  // Pink noise parameter: numerator.
-    float pinkNoiseExp;  // Pink noise parameter: power of frequencies.
+    float pinkNoiseExp;  // Pink noise parameter: power of frequencies粉红噪声参数：频率功率.
     float parametricNoise[HALF_ANAL_BLOCKL];
-    // Parameters for feature extraction.
+    // Parameters for feature extraction特征提取参数.
     NSParaExtract featureExtractionParams;
-    // Histograms for parameter estimation.
+    // Histograms for parameter estimation参数估计直方图.
     int histLrt[HIST_PAR_EST];
     int histSpecFlat[HIST_PAR_EST];
     int histSpecDiff[HIST_PAR_EST];
-    // Quantities for high band estimate.
+    // Quantities for high band estimate高带估计量.
     float speechProb[HALF_ANAL_BLOCKL];  // Final speech/noise prob: prior + LRT.
-    // Buffering data for HB.
+    // Buffering data for HB HB缓冲数据.
     float dataBufHB[NUM_HIGH_BANDS_MAX][ANAL_BLOCKL_MAX];
 
 } NoiseSuppressionC;
@@ -183,7 +184,7 @@ void WebRtcNs_AnalyzeCore ( NoiseSuppressionC *self, const float *speechFrame );
  */
 void WebRtcNs_ProcessCore ( NoiseSuppressionC *self,
                             const float *const *inFrame,
-                            int num_bands,
+                            size_t num_bands,
                             float *const *outFrame );
 
 #ifdef __cplusplus
