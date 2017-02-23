@@ -254,6 +254,7 @@ static void NoiseEstimation ( NoiseSuppressionC *self,
             //>= 3000(能量值)
             if ( lmagn[i] > self->lquantile[offset + i] )
             {
+                /* self->counter[0,1,2] = {66,133,200}*/
                 self->lquantile[offset + i] +=  QUANTILE * delta / ( float ) ( self->counter[s] + 1 );
             }
 
@@ -264,8 +265,10 @@ static void NoiseEstimation ( NoiseSuppressionC *self,
             }
 
             // Update density estimate.
+            /*保证在30HZ以内*/
             if ( fabs ( lmagn[i] - self->lquantile[offset + i] ) < WIDTH )
             {
+                /*随着self->counter[s]的值变大，则self->density[i]的值变大*/
                 self->density[offset + i] =
                     ( ( float ) self->counter[s] * self->density[offset + i] +
                       1.f / ( 2.f * WIDTH ) ) / ( float ) ( self->counter[s] + 1 );
