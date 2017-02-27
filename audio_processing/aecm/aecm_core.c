@@ -516,12 +516,12 @@ int WebRtcAecm_InitCore(AecmCore *const aecm, int samplingFreq)
     aecm->vadUpdateCount = 0;
     aecm->firstVAD = 1;
     aecm->startupState = 0;
-    aecm->supGain = SUPGAIN_DEFAULT;
-    aecm->supGainOld = SUPGAIN_DEFAULT;
-    aecm->supGainErrParamA = SUPGAIN_ERROR_PARAM_A;
-    aecm->supGainErrParamD = SUPGAIN_ERROR_PARAM_D;
-    aecm->supGainErrParamDiffAB = SUPGAIN_ERROR_PARAM_A - SUPGAIN_ERROR_PARAM_B;
-    aecm->supGainErrParamDiffBD = SUPGAIN_ERROR_PARAM_B - SUPGAIN_ERROR_PARAM_D;
+    aecm->supGain = SUPGAIN_DEFAULT; //256
+    aecm->supGainOld = SUPGAIN_DEFAULT; //256
+    aecm->supGainErrParamA = SUPGAIN_ERROR_PARAM_A; //3072
+    aecm->supGainErrParamD = SUPGAIN_ERROR_PARAM_D; //256
+    aecm->supGainErrParamDiffAB = SUPGAIN_ERROR_PARAM_A - SUPGAIN_ERROR_PARAM_B; //1536
+    aecm->supGainErrParamDiffBD = SUPGAIN_ERROR_PARAM_B - SUPGAIN_ERROR_PARAM_D; //1379
     // Assert a preprocessor definition at compile-time. It's an assumption
     // used in assembly code, so check the assembly files before any change.
     COMPILE_ASSERT(PART_LEN % 16 == 0);
