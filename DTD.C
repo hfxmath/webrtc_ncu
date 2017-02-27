@@ -1,3 +1,4 @@
+原始地址： https://www.ietf.org/mail-archive/web/avt/current/msg04629.html
 int dtdNdx;
 /* For Normalized Least Means Square - Pre-whitening */
 #define NLMS_LEN (240*8) /* maximum NLMS filter length in taps
